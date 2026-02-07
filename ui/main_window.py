@@ -7,11 +7,38 @@ from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import Qt
 import requests
 import html
+import os
+
 
 from logic.downloader import search_programmes, download_by_indexes
 from logic.scraper import fetch_basic_info, fetch_detailed_info
 
+def load_downloaded_pids():
+    downloaded = set()
+    home = os.path.expanduser("~")
+    history_path = os.path.join(home, ".get_iplayer", "download_history")
+
+    if not os.path.exists(history_path):
+        return downloaded
+
+    try:
+        with open(history_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                pid = line.split("|")[0].strip()
+                if pid and pid.isalnum() and len(pid) <= 12:
+                    downloaded.add(pid)
+
+    except Exception as e:
+        print("Error reading history:", e)
+    return downloaded
+
+
+
 class MainWindow(QWidget):
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("BBC get_iplayer UI")
@@ -53,10 +80,24 @@ class MainWindow(QWidget):
         layout.addWidget(self.download_button)
         self.download_button.clicked.connect(self.download_selected)
 
+        self.pid_input = QLineEdit()
+        self.pid_input.setPlaceholderText("Enter PID (e.g. m002jhgb)")
+        layout.addWidget(self.pid_input)
+        pid_layout = QHBoxLayout()
+
+        self.pid_button = QPushButton("Search By PID")
+        pid_layout.addWidget(self.pid_button)
+        self.pid_button.clicked.connect(self.open_pid_details)
+
+        layout.addLayout(pid_layout)
+
+
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
 
         self.setLayout(layout)
+        self.downloaded_pids = load_downloaded_pids()
+
 
     def perform_search(self):
         query = self.query_input.text().strip()
@@ -87,6 +128,9 @@ class MainWindow(QWidget):
                     pass
             item.setData(Qt.UserRole, result['index'])
             item.setData(Qt.UserRole + 1, result['pid'])
+            pid = result['pid']
+            if pid in self.downloaded_pids:
+                item.setBackground(Qt.yellow)
             self.results_list.addItem(item)
 
         self.status_label.setText(f"Found {len(results)} results.")
@@ -121,7 +165,7 @@ class MainWindow(QWidget):
         else:
             self.status_label.setText("Download cancelled.")
 
-    def show_multiple_program_details(self, info_list):
+    def show_multiple_program_details(self, info_list, pid_mode=False):
         dialog = QDialog(self)
         dialog.setWindowTitle("Selected Programmes")
         dialog.setMinimumSize(600, 600)
@@ -173,16 +217,39 @@ class MainWindow(QWidget):
             block_widget = QWidget()
             block_widget.setLayout(block)
             content_layout.addWidget(block_widget)
-
+        
         content.setLayout(content_layout)
         scroll.setWidget(content)
         layout.addWidget(scroll)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
+        if pid_mode:
+            buttons = QDialogButtonBox(QDialogButtonBox.Close)
+            buttons.rejected.connect(dialog.reject)
+        else:
+            buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
         result = dialog.exec_()
         return result == QDialog.Accepted
+    
+    def open_pid_details(self):
+        pid = self.pid_input.text().strip()
+        if not pid:
+            self.status_label.setText("Please enter a PID.")
+            return
+
+        self.status_label.setText("Fetching programme info...")
+
+        try:
+            info = fetch_detailed_info(pid)
+        except Exception as e:
+            self.status_label.setText(f"Error fetching PID: {str(e)}")
+            return
+
+        self.show_multiple_program_details([info], pid_mode=True)
+
+        self.status_label.setText("")

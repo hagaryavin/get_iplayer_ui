@@ -3,9 +3,24 @@
 A graphical interface for downloading BBC programmes using get_iplayer.
 
 ## Features:
-- Search by programme name, channel, or type
-- Display additional info including summary and track list
-- Download selected programmes via get_iplayer
+- Search programmes by name, channel, or type (radio / TV) 
+- Display programme details including: 
+    - Title, description, duration 
+    - High‑resolution images 
+    - Track list (when available) 
+- Multi‑selection download support 
+- PID lookup mode — fetch details directly by programme ID 
+- Automatic detection of previously downloaded programmes
+- Windows launcher for easy startup 
+
+## Technologies Used:
+- **Python 3.8+** 
+- **PyQt5** — graphical user interface 
+- **requests** — fetching metadata and images 
+- **get_iplayer** — backend downloader 
+- **ffmpeg** & **AtomicParsley** — media processing 
+- **Custom scraping logic** for programme metadata (basic + detailed) 
+- **Filesystem integration** for reading download history
 
 ## Requirements:
 - Python 3.8+
@@ -15,4 +30,19 @@ A graphical interface for downloading BBC programmes using get_iplayer.
 ## Installation:
 ```bash
 pip install -r requirements.txt
+```
+
+## Running:
+- From the command line:
+```bash
 python main.py
+```
+- Or double-click on the included `run_app.bat` file
+
+## Acknowledgements
+This project uses **get_iplayer**, an open‑source BBC programme downloader.
+
+get_iplayer 3.35.0-MSWin32-x64  
+Copyright (C) 2008‑2010 Phil Lewis,  
+2010‑present get_iplayer contributors  
+
