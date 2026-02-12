@@ -1,17 +1,17 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton,
     QComboBox, QListWidget, QListWidgetItem, QHBoxLayout,
-    QApplication, QDialog, QDialogButtonBox, QScrollArea
+    QApplication, QDialog, QDialogButtonBox, QScrollArea, QFileDialog
 )
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSettings
 import requests
 import html
 import os
 
-
 from logic.downloader import search_programmes, download_by_indexes
 from logic.scraper import fetch_basic_info, fetch_detailed_info
+
 
 def load_downloaded_pids():
     downloaded = set()
@@ -36,12 +36,24 @@ def load_downloaded_pids():
     return downloaded
 
 
-
 class MainWindow(QWidget):
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("BBC get_iplayer UI")
+
+        # Load settings
+        self.settings = QSettings("get_iplayer_ui", "settings")
+
+        # Default folder = C:\Users\<USER>\.get_iplayer
+        default_folder = os.path.join(os.path.expanduser("~"), ".get_iplayer")
+
+        # Ensure folder exists
+        if not os.path.exists(default_folder):
+            os.makedirs(default_folder, exist_ok=True)
+
+        # Load saved folder or default
+        self.download_folder = self.settings.value("download_folder", default_folder)
 
         layout = QVBoxLayout()
 
@@ -68,6 +80,18 @@ class MainWindow(QWidget):
 
         layout.addLayout(filter_layout)
 
+        # Folder selection UI
+        folder_layout = QHBoxLayout()
+
+        self.folder_label = QLabel(f"Download folder: {self.download_folder}")
+        folder_layout.addWidget(self.folder_label)
+
+        self.choose_folder_btn = QPushButton("Choose download folder")
+        self.choose_folder_btn.clicked.connect(self.choose_download_folder)
+        folder_layout.addWidget(self.choose_folder_btn)
+
+        layout.addLayout(folder_layout)
+
         self.search_button = QPushButton("Search")
         layout.addWidget(self.search_button)
         self.search_button.clicked.connect(self.perform_search)
@@ -83,14 +107,12 @@ class MainWindow(QWidget):
         self.pid_input = QLineEdit()
         self.pid_input.setPlaceholderText("Enter PID (e.g. m002jhgb)")
         layout.addWidget(self.pid_input)
-        pid_layout = QHBoxLayout()
 
+        pid_layout = QHBoxLayout()
         self.pid_button = QPushButton("Search By PID")
         pid_layout.addWidget(self.pid_button)
         self.pid_button.clicked.connect(self.open_pid_details)
-
         layout.addLayout(pid_layout)
-
 
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
@@ -98,6 +120,18 @@ class MainWindow(QWidget):
         self.setLayout(layout)
         self.downloaded_pids = load_downloaded_pids()
 
+    def choose_download_folder(self):
+        # Open file dialog starting at current folder
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Select download folder",
+            self.download_folder
+        )
+
+        if folder:
+            self.download_folder = folder
+            self.folder_label.setText(f"Download folder: {folder}")
+            self.settings.setValue("download_folder", folder)
 
     def perform_search(self):
         query = self.query_input.text().strip()
@@ -160,7 +194,7 @@ class MainWindow(QWidget):
 
         if confirmed:
             self.status_label.setText("Downloading...")
-            status = download_by_indexes(selected_indexes)
+            status = download_by_indexes(selected_indexes, self.download_folder)
             self.status_label.setText(status)
         else:
             self.status_label.setText("Download cancelled.")
@@ -191,6 +225,7 @@ class MainWindow(QWidget):
             description_label = QLabel(html.escape(info['description']))
             description_label.setWordWrap(True)
             block.addWidget(description_label)
+
             if info.get('image'):
                 try:
                     response = requests.get(info['image'], timeout=5)
@@ -217,7 +252,7 @@ class MainWindow(QWidget):
             block_widget = QWidget()
             block_widget.setLayout(block)
             content_layout.addWidget(block_widget)
-        
+
         content.setLayout(content_layout)
         scroll.setWidget(content)
         layout.addWidget(scroll)
@@ -235,7 +270,7 @@ class MainWindow(QWidget):
         dialog.setLayout(layout)
         result = dialog.exec_()
         return result == QDialog.Accepted
-    
+
     def open_pid_details(self):
         pid = self.pid_input.text().strip()
         if not pid:

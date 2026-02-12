@@ -1,5 +1,4 @@
 # get_iplayer_ui 🎧
-
 A graphical interface for downloading BBC programmes using get_iplayer.
 
 ## Features:
@@ -9,16 +8,17 @@ A graphical interface for downloading BBC programmes using get_iplayer.
     - High‑resolution images 
     - Track list (when available) 
 - Multi‑selection download support 
-- PID lookup mode — fetch details directly by programme ID 
+- PID lookup mode - fetch details directly by programme ID 
 - Automatic detection of previously downloaded programmes
+- Ability to change the output folder
 - Windows launcher for easy startup 
 
 ## Technologies Used:
 - **Python 3.8+** 
-- **PyQt5** — graphical user interface 
-- **requests** — fetching metadata and images 
-- **get_iplayer** — backend downloader 
-- **ffmpeg** & **AtomicParsley** — media processing 
+- **PyQt5** for graphical user interface 
+- **requests** for fetching metadata and images 
+- **get_iplayer** for backend downloader 
+- **ffmpeg** & **AtomicParsley** for media processing 
 - **Custom scraping logic** for programme metadata (basic + detailed) 
 - **Filesystem integration** for reading download history
 
@@ -39,10 +39,8 @@ python main.py
 ```
 - Or double-click on the included `run_app.bat` file
 
-## Acknowledgements
+## Acknowledgements:
 This project uses **get_iplayer**, an open‑source BBC programme downloader.
 
-get_iplayer 3.35.0-MSWin32-x64  
-Copyright (C) 2008‑2010 Phil Lewis,  
-2010‑present get_iplayer contributors  
+Copyright © 2008‑2010 Phil Lewis, 2010‑present get_iplayer contributors  
 

@@ -33,14 +33,22 @@ def search_programmes(query, type_, channel):
             })
 
     return programmes
-
-def download_by_indexes(index_list):
+def download_by_indexes(index_list, output_folder=None):
     cmd = [r"C:\Program Files\get_iplayer\get_iplayer.cmd", "--get"] + index_list
+
+    if output_folder:
+        cmd.append(f'--output={output_folder}')
+
+    print("Executing:", " ".join(cmd))
+
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         output = result.stdout + result.stderr
+        print("Full output:\n", output)
+
         if "No media streams found" in output or "Response: 410 Gone" in output:
             return "Download failed: Content not available in your region."
+
         return "Download complete!"
     except Exception as e:
         return f"Download error: {str(e)}"
